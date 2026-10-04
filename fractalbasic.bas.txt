@@ -1,38 +1,138 @@
 10 REM ==========================================================
-20 REM Mandelbrot-Set als ASCII (Escape-Time-Rendering)
-30 REM Raster 79x25, max. 16 Iterationen, Escape bei |z|^2 > 4
-40 REM Innen der Menge: '#'. Shading: Escape-Iteration -> PAL$
+20 REM Mandelbrot-Set ASCII Renderer mit Zoom, Animation, Save
+30 REM Raster 79x25, Escape-Time, Escape bei |z|^2 > 4
+40 REM Innen: '#'. Shading: Escape-Iteration -> PAL$
 50 REM ==========================================================
-60 MAXIT=15                 REM letzter Iterations-Index (0-basiert)
+60 MAXIT=15                 REM max. Iterationen (0..MAXIT)
 70 ESC2=4                   REM Escape-Radius^2 (|z| > 2)
-80 RE=0.0526                REM Skalierung Re(c) pro Spalte
-90 IM=0.1083                REM Skalierung Im(c) pro Zeile
-100 PAL$="0123456789ABCDEF" REM Shading-Palette, 1 Zeichen pro Escape-Iteration
-110 FOR Y=-12 TO 12
-120 FOR X=-39 TO 39
-130 CA=X*RE
-140 CB=Y*IM
-150 A=CA
-160 B=CB
-170 ESCAPED=0
-180 ESCI=0
-190 FOR I=0 TO MAXIT
-200 IF ESCAPED=0 THEN 210
-205 GOTO 270
-210 T=A*A-B*B+CA
-220 B=2*A*B+CB
-230 A=T
-240 IF A*A+B*B>ESC2 THEN 250
-245 GOTO 270
-250 ESCAPED=1
-260 ESCI=I
-270 NEXT I
-280 CH$="#"
-290 IF ESCAPED=1 THEN 300
-295 GOTO 320
-300 IF ESCI>=LEN(PAL$) THEN ESCI=LEN(PAL$)-1
-310 CH$=MID$(PAL$,ESCI+1,1)
-320 PRINT CH$;
-330 NEXT X
-340 PRINT
-350 NEXT Y
+80 RE0=0.0526               REM Basis-Skalierung Re(c) pro Spalte (Zoom=1)
+90 IM0=0.1083               REM Basis-Skalierung Im(c) pro Zeile (Zoom=1)
+100 RE=RE0: IM=IM0          REM aktuelle Skalierung (aenderbar per Zoom)
+110 CX=0: CY=0              REM Mittelpunkt der Ansicht (Re, Im)
+120 PAL$="0123456789ABCDEF" REM Shading-Palette, 1 Zeichen pro Escape-Iteration
+130 SAVING=0                REM Flag: 1=zusatzlich in Datei schreiben
+140 FN$=""                  REM Dateiname fuer SAVE
+150 LINE$=""                REM Zeilen-Puffer fuer RENDER
+160 GOTO 500                REM Springe zum Hauptmenue
+170 REM ==========================================================
+180 REM RENDER: Zeichnet ein Frame an (CX,CY) mit Skalierung (RE,IM)
+190 REM Gibt an Screen aus, und bei SAVING=1 auch an Datei #1
+200 REM ==========================================================
+210 LINE$=""
+220 FOR Y=-12 TO 12
+230 LINE$=""
+240 FOR X=-39 TO 39
+250 CA=X*RE+CX
+260 CB=Y*IM+CY
+270 A=CA
+280 B=CB
+290 ESCAPED=0
+300 ESCI=0
+310 FOR I=0 TO MAXIT
+320 IF ESCAPED=0 THEN 330
+325 GOTO 390
+330 T=A*A-B*B+CA
+340 B=2*A*B+CB
+350 A=T
+360 IF A*A+B*B>ESC2 THEN 370
+365 GOTO 390
+370 ESCAPED=1
+380 ESCI=I
+390 NEXT I
+400 CH$="#"
+410 IF ESCAPED=1 THEN 420
+415 GOTO 450
+420 IF ESCI>=LEN(PAL$) THEN ESCI=LEN(PAL$)-1
+430 CH$=MID$(PAL$,ESCI+1,1)
+450 LINE$=LINE$+CH$
+460 NEXT X
+470 PRINT LINE$
+480 IF SAVING=1 THEN PRINT #1, LINE$
+490 NEXT Y
+495 RETURN
+500 REM ==========================================================
+510 REM HAUPTMENUE
+520 REM ==========================================================
+530 CLS
+540 PRINT "=== MANDELBROT ASCII RENDERER ==="
+550 PRINT "Mittelpunkt: (";CX;",";CY;")  Zoom: ";RE0/RE
+560 PRINT "MAXIT: ";MAXIT
+570 PRINT "1 = Render"
+580 PRINT "2 = Zoom einstellen"
+590 PRINT "3 = Animation (Zoom-in)"
+600 PRINT "4 = Frame speichern"
+610 PRINT "5 = MAXIT aendern"
+620 PRINT "6 = Ende"
+630 INPUT "Wahl (1-6): ";W
+640 IF W=1 THEN 550
+650 IF W=2 THEN 600
+660 IF W=3 THEN 650
+670 IF W=4 THEN 750
+680 IF W=5 THEN 850
+690 IF W=6 THEN 950
+700 GOTO 530
+710 REM Render
+720 CLS
+730 GOSUB 210
+740 GOTO 530
+750 REM Zoom einstellen
+760 INPUT "Mittelpunkt Re (z.B. -0.746): ";CX
+770 INPUT "Mittelpunkt Im (z.B.  0.147): ";CY
+780 INPUT "Zoom-Faktor (1=normal, >1 reinzoomen): ";Z
+790 IF Z<=0 THEN Z=1
+800 RE=RE0/Z
+810 IM=IM0/Z
+820 PRINT "Zoom gesetzt: Mittelpunkt (";CX;",";CY;")  Zoom-Faktor ";Z
+830 GOTO 530
+850 REM Animation: Zoom-in auf (CX,CY)
+860 INPUT "Start-Zoom (1=normal): ";Z
+870 INPUT "Anzahl Frames: ";N
+880 INPUT "Delay pro Frame (z.B. 200000): ";DELAY
+890 IF Z<=0 THEN Z=1
+900 IF N<=0 THEN N=1
+910 IF DELAY<=0 THEN DELAY=200000
+920 INPUT "Frames speichern? (1=ja, 0=nein): ";SAVEANIM
+930 IF SAVEANIM=1 THEN INPUT "Basis-Dateiname (ohne Nummer): ";FN$
+940 FOR F=1 TO N
+950 RE=RE0/Z
+960 IM=IM0/Z
+970 CLS
+980 IF SAVEANIM=1 THEN GOSUB 1000
+990 GOSUB 210
+995 IF SAVEANIM=1 THEN GOSUB 1100
+1000 FOR J=1 TO DELAY: NEXT J
+1010 Z=Z*1.5
+1020 NEXT F
+1030 GOTO 530
+1100 REM Frame speichern (in Animations-Loop)
+1110 SAVING=1
+1120 RETURN
+1150 REM Datei schliessen nach Frame (in Animations-Loop)
+1160 SAVING=0
+1170 RETURN
+1200 REM Einzelnen Frame speichern (Menu 4)
+1210 INPUT "Dateiname: ";FN$
+1220 OPEN FN$ FOR OUTPUT AS #1
+1230 SAVING=1
+1240 GOSUB 210
+1250 SAVING=0
+1260 CLOSE #1
+1270 PRINT "Gespeichert: ";FN$
+1280 GOTO 530
+1350 REM MAXIT aendern
+1360 INPUT "Neue MAXIT (aktuell ";MAXIT;"): ";MAXIT
+1370 IF MAXIT<1 THEN MAXIT=1
+1380 PRINT "MAXIT = ";MAXIT
+1390 GOTO 530
+1450 REM Ende
+1460 END
+1470 REM ==========================================================
+1480 REM HINWEISE:
+1490 REM - Zoom-Ziele (Grenzpunkte): -0.746,0.147  |  -1.78,0  |  -0.16,1.03
+1500 REM - Datei-I/O: GW/QBASIC: OPEN FN$ FOR OUTPUT AS #1 / CLOSE #1
+1510 REM   Commodore: OPEN 1,8,2,FN$ / CLOSE 1
+1520 REM   Atari: OPEN #1,FN$ / CLOSE #1
+1530 REM - Animation Delay ist maschinenabhaengig (Busy-Wait).
+1540 REM - Bei hohem Zoom MAXIT erhoehen (Menu 5) fuer schaerfere Grenze.
+1550 REM - PAL$ hat 16 Stufen (0-9,A-F). Bei MAXIT>15 saettigt Shading bei 'F'.
+1560 REM ==========================================================
