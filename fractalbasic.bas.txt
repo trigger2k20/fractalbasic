@@ -1,0 +1,38 @@
+10 REM ==========================================================
+20 REM Mandelbrot-Set als ASCII (Escape-Time-Rendering)
+30 REM Raster 79x25, max. 16 Iterationen, Escape bei |z|^2 > 4
+40 REM Innen der Menge: '#'. Shading: Escape-Iteration -> PAL$
+50 REM ==========================================================
+60 MAXIT=15                 REM letzter Iterations-Index (0-basiert)
+70 ESC2=4                   REM Escape-Radius^2 (|z| > 2)
+80 RE=0.0526                REM Skalierung Re(c) pro Spalte
+90 IM=0.1083                REM Skalierung Im(c) pro Zeile
+100 PAL$="0123456789ABCDEF" REM Shading-Palette, 1 Zeichen pro Escape-Iteration
+110 FOR Y=-12 TO 12
+120 FOR X=-39 TO 39
+130 CA=X*RE
+140 CB=Y*IM
+150 A=CA
+160 B=CB
+170 ESCAPED=0
+180 ESCI=0
+190 FOR I=0 TO MAXIT
+200 IF ESCAPED=0 THEN 210
+205 GOTO 270
+210 T=A*A-B*B+CA
+220 B=2*A*B+CB
+230 A=T
+240 IF A*A+B*B>ESC2 THEN 250
+245 GOTO 270
+250 ESCAPED=1
+260 ESCI=I
+270 NEXT I
+280 CH$="#"
+290 IF ESCAPED=1 THEN 300
+295 GOTO 320
+300 IF ESCI>=LEN(PAL$) THEN ESCI=LEN(PAL$)-1
+310 CH$=MID$(PAL$,ESCI+1,1)
+320 PRINT CH$;
+330 NEXT X
+340 PRINT
+350 NEXT Y
